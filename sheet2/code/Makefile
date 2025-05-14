@@ -2,8 +2,8 @@ CC = gcc
 CXX = g++
 CXXFLAGS = -O3 -std=c++11 -I.
 
-PROGRAM = test
-OBJS = test.o
+PROGRAM = main
+OBJS = main.o grid.o
 
 $(PROGRAM): $(OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^

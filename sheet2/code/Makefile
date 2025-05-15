@@ -3,7 +3,7 @@ CXX = g++
 CXXFLAGS = -O3 -std=c++11 -I.
 
 PROGRAM = main
-OBJS = main.o grid.o
+OBJS = main.o Grid.o Ising.o
 
 $(PROGRAM): $(OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $^

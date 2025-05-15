@@ -1,30 +1,37 @@
-#include "grid.h"
+#include <iostream>
+#include <chrono>
+#include <random>
 #include <vector>
+#include "Grid.h"
+#include "Ising.h"
 using namespace std;
-#define mod(a, b) ((((a) % (b)) + b) % b)
-
-void print_vec(vector<int> vec)
-{
-    printf("[%d", vec[0]);
-    for (int i = 1; i < vec.size(); i++)
-    {
-        printf(", %d", vec[i]);
-    }
-    printf("]\n");
-}
 
 int main(int argc, char const *argv[])
 {
-    vector<int> data(20);
+    // make a unique seed based on the current time
+    unsigned seed = 123;
+    cout << "Seed: " << seed << std::endl;
+    printf("\n");
+
+    // define a mersenne twister generator
+    mt19937 gen;
+
+    // initialize generator with the seed
+    gen.seed(seed);
+
     vector<int> shape(2);
-    for (int i = 0; i < data.size(); i++)
-    {
-        data[i] = i;
-    }
     shape[0] = 4;
     shape[1] = 5;
+    printf("Shape = [%d, %d]\n\n", shape[0], shape[1]);
 
-    Grid grid(data, shape);
-    print_vec(grid.nn(12));
+    Grid grid(shape);
+    Ising ising(&grid);
+    int test_size = 1;
+    for (int i = 0; i < test_size; i++)
+    {
+        ising.org(1);
+        printf("Energy = %lf\n", ising.energy());
+        printf("Magnetization = %lf\n", ising.magnetization());
+    }
     return 0;
 }

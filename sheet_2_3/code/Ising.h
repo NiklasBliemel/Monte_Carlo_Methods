@@ -23,7 +23,7 @@ public:
     double magnetization(vector<int> g_data);
     void org(int state);
     void randomize(mt19937 &gen);
-    void metropolis(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double beta, int N_mc, int N_therm);
+    void metropolis(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double T, int N_mc, int N_therm);
 };
 
 #endif

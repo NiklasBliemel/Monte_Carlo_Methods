@@ -7,35 +7,9 @@
 
 #include "Grid.h"
 #include "Ising.h"
+#include "Routines.h"
 
 using namespace std;
-#define sqr(x) ((x) * (x))
-
-double vec_mean(vector<double> &vec, int offset)
-{
-    double out = 0;
-    for (int i = offset; i < vec.size(); i++)
-    {
-        out += vec[i];
-    }
-    return out / (vec.size() - offset);
-}
-
-double vec_var(vector<double> &vec, int offset)
-{
-    double mean_value = vec_mean(vec, offset);
-    double out = 0;
-    for (int i = offset; i < vec.size(); i++)
-    {
-        out += sqr(mean_value - vec[i]);
-    }
-    return out / (vec.size() - 1 - offset);
-}
-
-double vec_std(vector<double> &vec, int offset)
-{
-    return sqrt(vec_var(vec, offset));
-}
 
 int main(int argc, char const *argv[])
 {
@@ -88,7 +62,7 @@ int main(int argc, char const *argv[])
         for (int i = 0; i < chains_per_T; i++)
         {
             printf("Starting subrun %d\n", i);
-            ising.metropolis(gen, energies, magnetizations, 2.0, N_mc, N_therm);
+            ising.metropolis(gen, energies, magnetizations, temp, N_mc, N_therm);
             c = vec_var(energies, 10000) / sqr(temp);
             chi = vec_var(magnetizations, 10000) / temp;
             printf("specific heat c = %.8lf\n", c);

@@ -28,8 +28,8 @@ int main(int argc, char const *argv[])
     double J = 1;
     double B = 0;
     double L = 64;
-    int N_mc = 100000;
-    int N_therm = 1000;
+    int N_mc = 90000;
+    int N_therm = 10000;
 
     vector<double> temps(3);
     temps[0] = 2.0;

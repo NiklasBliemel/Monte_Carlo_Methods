@@ -11,10 +11,12 @@ double vec_var(vector<double> &vec, int offset);
 
 double vec_std(vector<double> &vec, int offset);
 
-double auto_covariance(vector<double> &vec);
+double auto_covariance(vector<double> &vec, int t);
 
-double auto_correlation(vector<double> &vec, double t);
+double auto_correlation(vector<double> &vec, int t);
 
 double auto_correlation_time(vector<double> &vec);
+
+double auto_corr_std(vector<double> &vec);
 
 #endif

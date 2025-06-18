@@ -12,7 +12,7 @@ private:
     Grid *grid;
     vector<int> data;
     vector<double> exp_delta_E_list;
-    void get_proposal_prob(double &delta_E, int rand_index);
+    int get_exp_list_index(int index);
 
 public:
     Ising(Grid *g_grid);
@@ -24,6 +24,7 @@ public:
     void org(int state);
     void randomize(mt19937 &gen);
     void metropolis(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double T, int N_mc, int N_therm);
+    int get_volume();
 };
 
 #endif

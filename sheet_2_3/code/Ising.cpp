@@ -1,8 +1,9 @@
 #include <random>
+#include <map>
 #include "Ising.h"
 using namespace std;
 
-Ising::Ising(Grid *g_grid) : data(g_grid->volume), exp_delta_E_list(2 * (2 * g_grid->nn_batch_size + 1))
+Ising::Ising(Grid *g_grid) : data(g_grid->volume), exp_delta_E_list(g_grid->nn_batch_size + 1)
 {
     grid = g_grid;
     for (int i = 0; i < grid->volume; i++)
@@ -12,7 +13,7 @@ Ising::Ising(Grid *g_grid) : data(g_grid->volume), exp_delta_E_list(2 * (2 * g_g
     printf("Ising model initialized!\n");
 }
 
-Ising::Ising(Grid *g_grid, double g_J, double g_B) : data(g_grid->volume), exp_delta_E_list(2 * (2 * g_grid->nn_batch_size + 1))
+Ising::Ising(Grid *g_grid, double g_J, double g_B) : data(g_grid->volume), exp_delta_E_list(g_grid->nn_batch_size + 1)
 {
     grid = g_grid;
     J = g_J;
@@ -27,15 +28,14 @@ Ising::Ising(Grid *g_grid, double g_J, double g_B) : data(g_grid->volume), exp_d
 double Ising::energy()
 {
     double h_1 = 0;
-    double dummy;
     double h_2 = 0;
     for (int i = 0; i < grid->volume; i++)
     {
         h_1 += data[i];
-        dummy = 0;
+        double dummy = 0;
         for (int j = 0; j < grid->nn_batch_size; j += 2)
         {
-            h_2 += data[grid->nearest_neighbors[i * grid->nn_batch_size + j]];
+            dummy += data[grid->nearest_neighbors[i * grid->nn_batch_size + j]];
         }
         h_2 += data[i] * dummy;
     }
@@ -59,7 +59,7 @@ double Ising::energy(vector<int> g_data)
         dummy = 0;
         for (int j = 0; j < grid->nn_batch_size; j += 2)
         {
-            h_2 += g_data[grid->nearest_neighbors[i * grid->nn_batch_size + j]];
+            dummy += g_data[grid->nearest_neighbors[i * grid->nn_batch_size + j]];
         }
         h_2 += g_data[i] * dummy;
     }
@@ -119,17 +119,14 @@ void Ising::randomize(mt19937 &gen)
     }
 }
 
-void Ising::get_proposal_prob(double &proposal_prob, int rand_index)
+int Ising::get_exp_list_index(int index)
 {
-    int index;
-    int dummy = 0;
-    index = grid->nn_batch_size * (data[rand_index] + 1);
-    for (size_t i = 0; i < grid->nn_batch_size; i++)
+    int out = 0;
+    for (int i = 0; i < grid->nn_batch_size; i++)
     {
-        dummy += data[grid->nearest_neighbors[grid->nn_batch_size * rand_index + i]];
+        out += data[grid->nearest_neighbors[index * grid->nn_batch_size + i]];
     }
-    index += data[rand_index] * dummy + grid->nn_batch_size;
-    proposal_prob = exp_delta_E_list[index];
+    return (out * data[index] + grid->nn_batch_size) / 2;
 }
 
 void Ising::metropolis(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double T, int N_mc, int N_therm)
@@ -137,38 +134,44 @@ void Ising::metropolis(mt19937 &gen, vector<double> &energies, vector<double> &m
     randomize(gen); // random inital state
     uniform_int_distribution<int> unidist(0, grid->volume - 1);
     uniform_real_distribution<double> unidist_real(0, 1);
-    int rand_index;
-    double proposal_prob;
-    double rand_real;
     double accept_rate = 0;
     double beta = 1 / T;
+    printf("Start Metropolis T = %.2lf; N_cm = %d; N_therm = %d\n", T, N_mc, N_therm);
 
-    int contrib_J;
-    int contrib_B;
-    for (size_t i = 0; i < exp_delta_E_list.size(); i++)
+    for (unsigned i = 0; i < exp_delta_E_list.size(); i++)
     {
-        contrib_J = i % (2 * grid->nn_batch_size + 1) - grid->nn_batch_size;
-        contrib_B = i / (2 * grid->nn_batch_size + 1) * 2 - 1;
-        exp_delta_E_list[i] = exp(-beta * (2 * J * contrib_J + 2 * B * contrib_B));
+        exp_delta_E_list[i] = exp(-beta * (-2 * J * grid->nn_batch_size + 4 * J * i));
     }
-    energies.resize(N_mc);
-    magnetizations.resize(N_mc);
 
-    for (size_t i = 0; i < N_therm + N_mc * grid->volume; i++)
+    energies.clear();
+    magnetizations.clear();
+
+    for (unsigned i = 0; i < N_therm + N_mc; i++)
     {
-        rand_index = unidist(gen);
-        get_proposal_prob(proposal_prob, rand_index);
-        rand_real = unidist_real(gen);
-        if (rand_real < proposal_prob)
+        for (unsigned j = 0; j < grid->volume; j++)
         {
-            accept_rate++;
-            data[rand_index] *= -1;
+            double proposal_prob = exp_delta_E_list[get_exp_list_index(j)];
+            if (proposal_prob > 1)
+            {
+                accept_rate++;
+                data[j] *= -1;
+            }
+            else if (unidist_real(gen) < proposal_prob)
+            {
+                accept_rate++;
+                data[j] *= -1;
+            }
         }
-        if (i >= N_therm && i % grid->volume == 0)
+        if (i > N_therm)
         {
-            energies[(i - N_therm) / grid->volume] = energy();
-            magnetizations[(i - N_therm) / grid->volume] = magnetization();
+            energies.push_back(energy());
+            magnetizations.push_back(magnetization());
         }
     }
-    printf("Metropolis accept-rate = %.3lf%%\n", accept_rate / (N_therm + N_mc * grid->volume) * 100);
+    printf("Metropolis accept-rate = %.3lf%%\n", accept_rate / ((N_therm + N_mc) * grid->volume) * 100);
+}
+
+int Ising::get_volume()
+{
+    return grid->volume;
 }

@@ -27,10 +27,14 @@ int main(int argc, char const *argv[])
     // configure Ising model
     double J = 1;
     double B = 0;
-    double L = 8;
+    double L = 64;
     int N_mc = 100000;
     int N_therm = 1000;
-    int chains_per_T = 3;
+
+    vector<double> temps(3);
+    temps[0] = 2.0;
+    temps[1] = 2.3;
+    temps[2] = 2.6;
 
     vector<int> shape(2);
     shape[0] = L;
@@ -42,12 +46,58 @@ int main(int argc, char const *argv[])
 
     vector<double> energies;
     vector<double> magnetizations;
+    double var_auto_correlation;
+    double int_auto_correlation_time;
+    double var_auto_corr_std;
 
-    ising.metropolis(gen, energies, magnetizations, 2.0, N_mc, N_therm);
+    ofstream wf;
+    string filename;
+    stringstream stream;
 
-    double tau_int = auto_correlation_time(energies);
+    for (double temp : temps)
+    {
+        stream.str("");
+        stream << fixed << setprecision(1) << temp;
+        printf("\nStarting run with temp : %.1lfK\n\n", temp);
 
-    printf("auto correlation time test: %.4d\n", tau_int);
+        ising.metropolis(gen, energies, magnetizations, temp, N_mc, N_therm);
+
+        filename = "../../plot_lab/auto_correlations/auto_corr_e_t" + stream.str();
+        wf.open(filename, ios::binary);
+        int_auto_correlation_time = auto_correlation_time(energies);
+        var_auto_corr_std = auto_corr_std(energies) * ising.get_volume();
+        wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
+        wf.write(reinterpret_cast<char *>(&var_auto_corr_std), sizeof(double));
+        for (int t = 0; t < energies.size(); t++)
+        {
+            var_auto_correlation = auto_correlation(energies, t);
+            if (var_auto_correlation < 0)
+            {
+                break;
+            }
+            wf.write(reinterpret_cast<char *>(&var_auto_correlation), sizeof(double));
+        }
+        wf.close();
+
+        filename = "../../plot_lab/auto_correlations/auto_corr_m_t" + stream.str();
+        wf.open(filename, ios::binary);
+        int_auto_correlation_time = auto_correlation_time(magnetizations);
+        var_auto_corr_std = auto_corr_std(magnetizations) * ising.get_volume();
+        wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
+        wf.write(reinterpret_cast<char *>(&var_auto_corr_std), sizeof(double));
+        for (int t = 0; t < energies.size(); t++)
+        {
+            var_auto_correlation = auto_correlation(magnetizations, t);
+            if (var_auto_correlation < 0)
+            {
+                break;
+            }
+            wf.write(reinterpret_cast<char *>(&var_auto_correlation), sizeof(double));
+        }
+        wf.close();
+    }
+
+    printf("\nDone!!\n");
 
     return 0;
 }

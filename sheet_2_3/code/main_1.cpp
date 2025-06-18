@@ -3,7 +3,9 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 #include <string>
+#include <chrono>
 
 #include "Grid.h"
 #include "Ising.h"
@@ -31,6 +33,7 @@ int main(int argc, char const *argv[])
     int N_mc = 100000;
     int N_therm = 0;
     int chains_per_T = 3;
+    double test = 0;
 
     vector<double> temps(3);
     temps[0] = 2.0;
@@ -54,36 +57,47 @@ int main(int argc, char const *argv[])
     string filename;
     stringstream stream;
 
-    for (double temp : temps)
+    if (test)
     {
-        stream.str("");
-        stream << fixed << setprecision(1) << temp;
-        printf("\nStarting run with temp : %.1lfK\n\n", temp);
-        for (int i = 0; i < chains_per_T; i++)
+        ising.metropolis(gen, energies, magnetizations, 2.6, N_mc, N_therm);
+    }
+    else
+    {
+        for (double temp : temps)
         {
-            printf("Starting subrun %d\n", i);
-            ising.metropolis(gen, energies, magnetizations, temp, N_mc, N_therm);
-            c = vec_var(energies, 10000) / sqr(temp);
-            chi = vec_var(magnetizations, 10000) / temp;
-            printf("specific heat c = %.8lf\n", c);
-            printf("susceptibility chi = %.8lf\n", chi);
+            stream.str("");
+            stream << fixed << setprecision(1) << temp;
+            printf("\nStarting run with temp : %.1lfK\n\n", temp);
+            for (int i = 0; i < chains_per_T; i++)
+            {
+                chrono::steady_clock::time_point begin = chrono::steady_clock::now();
+                printf("\nStarting subrun %d\n", i);
+                ising.metropolis(gen, energies, magnetizations, temp, N_mc, N_therm);
+                c = vec_var(energies, 10000) / sqr(temp) * sqr(L);
+                chi = vec_var(magnetizations, 10000) / temp * sqr(L);
+                printf("specific heat c = %.8lf\n", c);
+                printf("susceptibility chi = %.8lf\n", chi);
 
-            filename = "../../plot_lab/energies/energies_t" + stream.str() + "_" + to_string(i);
-            wf.open(filename, ios::binary);
-            for (double energy : energies)
-            {
-                wf.write(reinterpret_cast<char *>(&energy), sizeof(double));
+                filename = "../../plot_lab/energies/energies_t" + stream.str() + "_" + to_string(i);
+                wf.open(filename, ios::binary);
+                for (double energy : energies)
+                {
+                    wf.write(reinterpret_cast<char *>(&energy), sizeof(double));
+                }
+                wf.write(reinterpret_cast<char *>(&c), sizeof(double));
+                wf.close();
+                filename = "../../plot_lab/magnetizations/magnetizations_t" + stream.str() + "_" + to_string(i);
+                wf.open(filename, ios::binary);
+                for (double magnetization : magnetizations)
+                {
+                    wf.write(reinterpret_cast<char *>(&magnetization), sizeof(double));
+                }
+                wf.write(reinterpret_cast<char *>(&chi), sizeof(double));
+                wf.close();
+                chrono::steady_clock::time_point end = chrono::steady_clock::now();
+                cout << "Time difference = " << chrono::duration_cast<chrono::microseconds>(end - begin).count() << "[µs]" << endl;
+                cout << "Time difference = " << chrono::duration_cast<chrono::nanoseconds>(end - begin).count() << "[ns]" << endl;
             }
-            wf.write(reinterpret_cast<char *>(&c), sizeof(double));
-            wf.close();
-            filename = "../../plot_lab/magnetizations/magnetizations_t" + stream.str() + "_" + to_string(i);
-            wf.open(filename, ios::binary);
-            for (double magnetization : magnetizations)
-            {
-                wf.write(reinterpret_cast<char *>(&magnetization), sizeof(double));
-            }
-            wf.write(reinterpret_cast<char *>(&chi), sizeof(double));
-            wf.close();
         }
     }
     return 0;

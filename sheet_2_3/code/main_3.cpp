@@ -39,7 +39,7 @@ int main(int argc, char const *argv[])
     double B = 0;
     double L = 64;
     int N_mc = 100000;
-    int N_therm_default = 10000;
+    int N_therm = 10000;
 
     vector<double> temps(3);
     temps[0] = 2.0;
@@ -57,8 +57,8 @@ int main(int argc, char const *argv[])
     vector<double> energies;
     vector<double> magnetizations;
 
-    vector<double> g_cs;
-    vector<double> g_xis;
+    vector<double> g_cs(0);
+    vector<double> g_xis(0);
 
     ofstream wf;
     string filename;
@@ -66,8 +66,6 @@ int main(int argc, char const *argv[])
 
     for (double temp : temps)
     {
-        g_cs.clear();
-        g_xis.clear();
         stream.str("");
         stream << fixed << setprecision(1) << temp;
         printf("\nStarting run with temp : %.1lfK\n\n", temp);
@@ -76,62 +74,46 @@ int main(int argc, char const *argv[])
         // Energie and Specific Heat
         filename = "../../plot_lab/auto_correlations/auto_corr_e_t" + stream.str();
         wf.open(filename, ios::binary);
-
-        double int_auto_correlation_time = auto_correlation_time(energies, N_therm_default);
-        int N_therm = 20 * (int)int_auto_correlation_time;
-        double var_auto_corr_std = auto_corr_std(energies, N_therm) * ising.get_volume();
-
+        double int_auto_correlation_time = auto_correlation_time(energies);
+        double var_auto_corr_std = auto_corr_std(energies) * ising.get_volume();
         wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
         wf.write(reinterpret_cast<char *>(&var_auto_corr_std), sizeof(double));
         for (int t = 0; t < energies.size(); t++)
         {
-            double var_auto_correlation = auto_correlation(energies, t, N_therm);
+            double var_auto_correlation = auto_correlation(energies, t);
             if (var_auto_correlation < 0)
             {
                 break;
             }
             wf.write(reinterpret_cast<char *>(&var_auto_correlation), sizeof(double));
         }
-        double mean_e = vec_mean(energies, N_therm);
+        wf.close();
         for (double e : energies)
         {
-            g_cs.push_back(g_c(1 / temp, ising.get_volume(), mean_e, e));
+            g_cs.push_back(g_c(1 / temp, ising.get_volume(), vec_mean(energies, 20 * (int)int_auto_correlation_time), e));
         }
-        double c = ising.get_volume() * vec_var(energies, N_therm) / sqr(temp);
-        double sigma_c = auto_corr_std(g_cs, N_therm);
-        printf("c = %lf\n", c);
-        printf("sigma_c = %lf\n", sigma_c);
-        wf.close();
 
         // Magnetization and Susceptibility
         filename = "../../plot_lab/auto_correlations/auto_corr_m_t" + stream.str();
         wf.open(filename, ios::binary);
-
-        int_auto_correlation_time = auto_correlation_time(magnetizations, N_therm_default);
-        N_therm = 20 * (int)int_auto_correlation_time;
-        var_auto_corr_std = auto_corr_std(magnetizations, N_therm) * ising.get_volume();
-
+        int_auto_correlation_time = auto_correlation_time(magnetizations);
+        var_auto_corr_std = auto_corr_std(magnetizations) * ising.get_volume();
         wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
         wf.write(reinterpret_cast<char *>(&var_auto_corr_std), sizeof(double));
         for (int t = 0; t < energies.size(); t++)
         {
-            double var_auto_correlation = auto_correlation(magnetizations, t, N_therm);
+            double var_auto_correlation = auto_correlation(magnetizations, t);
             if (var_auto_correlation < 0)
             {
                 break;
             }
             wf.write(reinterpret_cast<char *>(&var_auto_correlation), sizeof(double));
         }
-        double mean_m = vec_mean(magnetizations, N_therm);
+        wf.close();
         for (double m : magnetizations)
         {
-            g_xis.push_back(g_c(1 / temp, ising.get_volume(), mean_m, m));
+            g_cs.push_back(g_c(1 / temp, ising.get_volume(), vec_mean(magnetizations, 20 * (int)int_auto_correlation_time), m));
         }
-        double xi = ising.get_volume() * vec_var(magnetizations, N_therm) / temp;
-        double sigma_xi = auto_corr_std(g_xis, N_therm);
-        printf("Xi = %lf\n", xi);
-        printf("sigma_Xi = %lf\n", sigma_xi);
-        wf.close();
     }
 
     printf("\nDone!!\n");

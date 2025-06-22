@@ -1,5 +1,6 @@
 #include "Routines.h"
 #include <vector>
+#include <functional>
 
 using namespace std;
 
@@ -26,12 +27,38 @@ double vec_var(vector<double> &vec, int N_therm)
     {
         out += sqr(mean_value - vec[i]);
     }
-    return out / (vec.size() - 1 - N_therm);
+    return out / (vec.size() - N_therm);
 }
 
 double vec_std(vector<double> &vec, int N_therm)
 {
     return sqrt(vec_var(vec, N_therm));
+}
+
+double vec_mean(vector<double> &vec, int start, int size)
+{
+    double out = 0;
+    for (int i = start; i < size + start; i++)
+    {
+        out += vec[i];
+    }
+    return out / size;
+}
+
+double vec_var(vector<double> &vec, int start, int size)
+{
+    double mean_value = vec_mean(vec, start, size);
+    double out = 0;
+    for (int i = start; i < size + start; i++)
+    {
+        out += sqr(mean_value - vec[i]);
+    }
+    return out / size;
+}
+
+double vec_std(vector<double> &vec, int start, int size)
+{
+    return sqrt(vec_var(vec, start, size));
 }
 
 double auto_covariance(vector<double> &vec, int t, int N_therm)

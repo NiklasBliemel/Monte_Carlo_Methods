@@ -131,8 +131,6 @@ int Ising::get_exp_list_index(int index)
 
 void Ising::metropolis(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double T, int N_mc, int N_therm)
 {
-    randomize(gen); // random inital state
-    uniform_int_distribution<int> unidist(0, grid->volume - 1);
     uniform_real_distribution<double> unidist_real(0, 1);
     double accept_rate = 0;
     double beta = 1 / T;

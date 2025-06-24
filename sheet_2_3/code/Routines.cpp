@@ -61,6 +61,11 @@ double vec_std(vector<double> &vec, int start, int size)
     return sqrt(vec_var(vec, start, size));
 }
 
+double blocking_std(vector<double> &blocks)
+{
+    return sqrt(vec_var(blocks, 0)) / sqrt(blocks.size());
+}
+
 double auto_covariance(vector<double> &vec, int t, int N_therm)
 {
     int N = vec.size() - N_therm;

@@ -18,6 +18,8 @@ double vec_var(vector<double> &vec, int start, int size);
 
 double vec_std(vector<double> &vec, int start, int size);
 
+double blocking_std(vector<double> &blocks);
+
 double auto_covariance(vector<double> &vec, int t, int N_therm);
 
 double auto_correlation(vector<double> &vec, int t, int N_therm);

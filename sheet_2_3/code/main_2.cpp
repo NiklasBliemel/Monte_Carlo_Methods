@@ -172,7 +172,7 @@ int main(int argc, char const *argv[])
         begin = chrono::steady_clock::now();
         blocking_c(energies, temp, ising.get_volume(), blocks, n_b, N_therm);
         c = vec_mean(blocks, 0);
-        sigma_c = vec_std(blocks, 0);
+        sigma_c = blocking_std(blocks);
         end = chrono::steady_clock::now();
         printf("Blocking in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
         printf("c = %lf\n", c);
@@ -231,7 +231,7 @@ int main(int argc, char const *argv[])
         begin = chrono::steady_clock::now();
         blocking_xi(magnetizations, temp, ising.get_volume(), blocks, n_b, N_therm);
         xi = vec_mean(blocks, 0);
-        sigma_xi = vec_std(blocks, 0);
+        sigma_xi = blocking_std(blocks);
         end = chrono::steady_clock::now();
         printf("Blocking in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
         printf("xi = %lf\n", xi);
@@ -250,7 +250,7 @@ int main(int argc, char const *argv[])
     }
 
     // ---------- True standard error ---------- //
-    /* M = 1000;
+    M = 1000;
     printf("\n\n-------- True Std. for T = 2.3K --------\n\n");
     vector<double> true_cs(M);
     vector<double> true_xis(M);
@@ -267,12 +267,12 @@ int main(int argc, char const *argv[])
     }
     double true_c = vec_mean(true_cs, 0);
     double true_xi = vec_mean(true_xis, 0);
-    double true_sigma_c = vec_var(true_cs, 0);
-    double true_sigma_xi = vec_var(true_xis, 0);
+    double true_sigma_c = vec_std(true_cs, 0);
+    double true_sigma_xi = vec_std(true_xis, 0);
 
     printf("\ntrue c = %lf\n", true_c);
     printf("true sigma_c = %lf\n", true_sigma_c);
     printf("true xi = %lf\n", true_xi);
-    printf("true sigma_xi = %lf\n\n", true_sigma_xi); */
+    printf("true sigma_xi = %lf\n\n", true_sigma_xi);
     return 0;
 }

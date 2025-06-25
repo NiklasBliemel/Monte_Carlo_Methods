@@ -111,5 +111,7 @@ double auto_correlation_time(vector<double> &vec, int N_therm)
 
 double auto_corr_std(vector<double> &vec, int N_therm)
 {
-    return sqrt(2 * auto_correlation_time(vec, N_therm) / vec.size()) * vec_std(vec, N_therm);
+    double tau = auto_correlation_time(vec, N_therm);
+    int N_therm_new = (int)(20 * tau);
+    return sqrt(2 * tau / (vec.size() - N_therm_new)) * vec_std(vec, N_therm_new);
 }

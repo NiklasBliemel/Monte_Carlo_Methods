@@ -11,66 +11,46 @@
 
 using namespace std;
 
-double g_c(double beta, int volume, double e_mean, double e)
+double error_propagation(vector<double> &sample, int N_therm, double &tau_g)
 {
-    return sqr(beta) * volume * e * (e - 2 * e_mean);
+    vector<double> gs(sample.size());
+    vector<double> gs_alt(sample.size());
+    double mean = vec_mean(sample, N_therm);
+    for (size_t i = 0; i < sample.size(); i++)
+    {
+        gs[i] = sample[i] * (sample[i] - 2 * mean);
+    }
+    tau_g = auto_correlation_time(gs, N_therm);
+    int N_therm_g = (int)(20 * tau_g);
+    return sqrt(2 * tau_g / (gs.size() - N_therm_g)) * vec_std(gs, N_therm_g);
 }
 
-double g_xi(double beta, int volume, double m_mean, double m)
+double blocking(vector<double> &sample, int n_b, int N_therm)
 {
-    return beta * volume * m * (m - 2 * m_mean);
-}
-
-void blocking_c(vector<double> &source_energies, double T, int volume, vector<double> &block_c, int n_b, int N_therm)
-{
-    block_c.resize(n_b);
-    int block_size = (source_energies.size() - N_therm) / n_b;
+    vector<double> blocks(n_b);
+    int block_size = (sample.size() - N_therm) / n_b;
     for (int i = 0; i < n_b; i++)
     {
-        block_c[i] = vec_var(source_energies, i * block_size + N_therm, block_size) * volume / sqr(T);
+        blocks[i] = vec_var(sample, i * block_size + N_therm, block_size);
     }
+    return blocking_std(blocks);
 }
 
-void blocking_xi(vector<double> &source_magnetizations, double T, int volume, vector<double> &block_xi, int n_b, int N_therm)
+double bootstrap(vector<double> &sample, int M, int N_therm, double tau_g, mt19937 gen)
 {
-    block_xi.resize(n_b);
-    int block_size = (source_magnetizations.size() - N_therm) / n_b;
-    for (int i = 0; i < n_b; i++)
-    {
-        block_xi[i] = volume * vec_var(source_magnetizations, i * block_size + N_therm, block_size) / T;
-    }
-}
-
-void bootstrap_e(vector<double> &source_vector, double T, int volume, vector<double> &boots, int M, int N_therm, mt19937 gen)
-{
-    boots.resize(M);
-    uniform_int_distribution<int> unidist(N_therm, volume - 1);
-    vector<double> boot_sample(volume - N_therm);
+    uniform_int_distribution<int> unidist(N_therm, sample.size() - 1);
+    vector<double> boots(M);
+    vector<double> pseudo_sample((sample.size() - N_therm) / (int)(2 * tau_g));
     for (size_t i = 0; i < M; i++)
     {
-        for (size_t j = 0; j < volume - N_therm; j++)
+        for (size_t j = 0; j < (sample.size() - N_therm) / (int)(2 * tau_g); j++)
         {
             int rand_index = unidist(gen);
-            boot_sample[j] = source_vector[rand_index];
+            pseudo_sample[j] = sample[rand_index];
         }
-        boots[i] = volume * vec_var(boot_sample, 0) / sqr(T);
+        boots[i] = vec_var(pseudo_sample, 0);
     }
-}
-
-void bootstrap_m(vector<double> &source_vector, double T, int volume, vector<double> &boots, int M, int N_therm, mt19937 gen)
-{
-    boots.resize(M);
-    uniform_int_distribution<int> unidist(N_therm, volume - 1);
-    vector<double> boot_sample(volume - N_therm);
-    for (size_t i = 0; i < M; i++)
-    {
-        for (size_t j = 0; j < volume - N_therm; j++)
-        {
-            int rand_index = unidist(gen);
-            boot_sample[j] = source_vector[rand_index];
-        }
-        boots[i] = volume * vec_var(boot_sample, 0) / T;
-    }
+    return vec_std(boots, 0);
 }
 
 int main(int argc, char const *argv[])
@@ -111,10 +91,7 @@ int main(int argc, char const *argv[])
     vector<double> energies;
     vector<double> magnetizations;
 
-    vector<double> gs;
-    vector<double> blocks;
     int n_b = 20;
-    vector<double> boots;
     int M = 1000;
 
     ofstream wf;
@@ -129,18 +106,22 @@ int main(int argc, char const *argv[])
         ising.metropolis(gen, energies, magnetizations, temp, N_mc, 0);
 
         // ----- energies and specific heat ----- //
+        printf("\nenergies and specific heat:\n\n");
 
         // auto_correlations
         double int_auto_correlation_time = auto_correlation_time(energies, N_therm_default);
-        printf("Auto correlation time %lf\n", int_auto_correlation_time);
         int N_therm = 20 * (int)int_auto_correlation_time;
-        double var_auto_corr_std = auto_corr_std(energies, N_therm) * ising.get_volume();
-        printf("N_therm = %d\n\n", N_therm);
+        double sigma_e = auto_corr_std(energies, N_therm) * ising.get_volume() / sqr(temp);
+        double c = vec_var(energies, N_therm) * ising.get_volume() / sqr(temp);
 
-        /* string filename = "../../plot_lab/auto_correlations/auto_corr_e_t" + stream.str();
+        printf("Auto correlation time %lf\n", int_auto_correlation_time);
+        printf("N_therm = %d\n\n", N_therm);
+        printf("c = %lf\n\n", c);
+
+        string filename = "../../plot_lab/auto_correlations/auto_corr_e_t" + stream.str();
         wf.open(filename, ios::binary);
         wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
-        wf.write(reinterpret_cast<char *>(&var_auto_corr_std), sizeof(double));
+        wf.write(reinterpret_cast<char *>(&sigma_e), sizeof(double));
         for (int t = 0; t < energies.size(); t++)
         {
             double var_auto_correlation = auto_correlation(energies, t, N_therm);
@@ -150,56 +131,53 @@ int main(int argc, char const *argv[])
             }
             wf.write(reinterpret_cast<char *>(&var_auto_correlation), sizeof(double));
         }
-        wf.close(); */
+        wf.close();
 
         // error propagation
-        gs.clear();
         chrono::steady_clock::time_point begin = chrono::steady_clock::now();
-        double mean_e = vec_mean(energies, N_therm);
-        for (double e : energies)
-        {
-            gs.push_back(g_c(1 / temp, ising.get_volume(), mean_e, e));
-        }
-        double c = ising.get_volume() * vec_var(energies, N_therm) / sqr(temp);
-        double sigma_c = auto_corr_std(gs, N_therm);
+
+        double tau_g;
+        double sigma_c = error_propagation(energies, N_therm, tau_g) * ising.get_volume() / sqr(temp);
+
         chrono::steady_clock::time_point end = chrono::steady_clock::now();
         printf("Error propagation in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
-        printf("c = %lf\n", c);
         printf("sigma_c = %lf\n\n", sigma_c);
 
         // blocking
-        blocks.clear();
         begin = chrono::steady_clock::now();
-        blocking_c(energies, temp, ising.get_volume(), blocks, n_b, N_therm);
-        c = vec_mean(blocks, 0);
-        sigma_c = blocking_std(blocks);
+
+        sigma_c = blocking(energies, n_b, N_therm) * ising.get_volume() / sqr(temp);
+
         end = chrono::steady_clock::now();
         printf("Blocking in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
-        printf("c = %lf\n", c);
         printf("sigma_c = %lf\n\n", sigma_c);
 
         // -------- bootstrap (c and xi) -------- //
-        boots.clear();
         begin = chrono::steady_clock::now();
-        bootstrap_e(energies, temp, ising.get_volume(), boots, M, N_therm, gen);
-        c = vec_mean(boots, 0);
-        sigma_c = vec_std(boots, 0);
+
+        sigma_c = bootstrap(energies, M, N_therm, tau_g, gen) * ising.get_volume() / sqr(temp);
+
         end = chrono::steady_clock::now();
         printf("Bootstrap in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
-        printf("c = %lf\n", c);
         printf("sigma_c = %lf\n\n", sigma_c);
 
         // ----- magnetization and susceptibility ----- //
+        printf("\nenergies and specific heat:\n\n");
 
         // auto_correlations
         int_auto_correlation_time = auto_correlation_time(magnetizations, N_therm_default);
         N_therm = 20 * (int)int_auto_correlation_time;
-        var_auto_corr_std = auto_corr_std(magnetizations, N_therm) * ising.get_volume();
+        double sigma_m = auto_corr_std(magnetizations, N_therm) * ising.get_volume() / temp;
+        double xi = vec_var(magnetizations, N_therm) * ising.get_volume() / temp;
 
-        /* filename = "../../plot_lab/auto_correlations/auto_corr_m_t" + stream.str();
+        printf("Auto correlation time %lf\n", int_auto_correlation_time);
+        printf("N_therm = %d\n\n", N_therm);
+        printf("xi = %lf\n\n", xi);
+
+        filename = "../../plot_lab/auto_correlations/auto_corr_m_t" + stream.str();
         wf.open(filename, ios::binary);
         wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
-        wf.write(reinterpret_cast<char *>(&var_auto_corr_std), sizeof(double));
+        wf.write(reinterpret_cast<char *>(&sigma_m), sizeof(double));
         for (int t = 0; t < energies.size(); t++)
         {
             double var_auto_correlation = auto_correlation(magnetizations, t, N_therm);
@@ -209,48 +187,38 @@ int main(int argc, char const *argv[])
             }
             wf.write(reinterpret_cast<char *>(&var_auto_correlation), sizeof(double));
         }
-        wf.close(); */
+        wf.close();
 
         // error propagation
-        gs.clear();
         begin = chrono::steady_clock::now();
-        double mean_m = vec_mean(magnetizations, N_therm);
-        for (double m : magnetizations)
-        {
-            gs.push_back(g_c(1 / temp, ising.get_volume(), mean_m, m));
-        }
-        double xi = ising.get_volume() * vec_var(magnetizations, N_therm) / temp;
-        double sigma_xi = auto_corr_std(gs, N_therm);
+
+        double sigma_xi = error_propagation(magnetizations, N_therm, tau_g) * ising.get_volume() / temp;
+
         end = chrono::steady_clock::now();
         printf("Error propagation in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
-        printf("Xi = %lf\n", xi);
         printf("sigma_Xi = %lf\n\n", sigma_xi);
 
         // blocking
-        blocks.clear();
         begin = chrono::steady_clock::now();
-        blocking_xi(magnetizations, temp, ising.get_volume(), blocks, n_b, N_therm);
-        xi = vec_mean(blocks, 0);
-        sigma_xi = blocking_std(blocks);
+
+        sigma_xi = blocking(magnetizations, n_b, N_therm) * ising.get_volume() / temp;
+
         end = chrono::steady_clock::now();
         printf("Blocking in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
-        printf("xi = %lf\n", xi);
         printf("sigma_xi = %lf\n\n", sigma_xi);
 
         // -------- bootstrap (c and xi) -------- //
-        boots.clear();
         begin = chrono::steady_clock::now();
-        bootstrap_m(magnetizations, temp, ising.get_volume(), boots, M, N_therm, gen);
-        xi = vec_mean(boots, 0);
-        sigma_xi = vec_std(boots, 0);
+
+        sigma_xi = bootstrap(magnetizations, M, N_therm, tau_g, gen) * ising.get_volume() / temp;
+
         end = chrono::steady_clock::now();
         printf("Bootstrap in %lld µs:\n", chrono::duration_cast<chrono::microseconds>(end - begin).count());
-        printf("xi = %lf\n", xi);
         printf("sigma_xi = %lf\n\n", sigma_xi);
     }
 
     // ---------- True standard error ---------- //
-    M = 1000;
+    /* M = 1000;
     printf("\n\n-------- True Std. for T = 2.3K --------\n\n");
     vector<double> true_cs(M);
     vector<double> true_xis(M);
@@ -273,6 +241,6 @@ int main(int argc, char const *argv[])
     printf("\ntrue c = %lf\n", true_c);
     printf("true sigma_c = %lf\n", true_sigma_c);
     printf("true xi = %lf\n", true_xi);
-    printf("true sigma_xi = %lf\n\n", true_sigma_xi);
+    printf("true sigma_xi = %lf\n\n", true_sigma_xi); */
     return 0;
 }

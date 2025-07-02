@@ -24,6 +24,7 @@ public:
     void org(int state);
     void randomize(mt19937 &gen);
     void metropolis(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double T, int N_mc, int N_therm);
+    void wolff_cluster(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, vector<double> &cluster_densities, double T, int N_mc);
     int get_volume();
 };
 

@@ -134,8 +134,6 @@ void Ising::metropolis(mt19937 &gen, vector<double> &energies, vector<double> &m
     uniform_real_distribution<double> unidist_real(0, 1);
     double accept_rate = 0;
     double beta = 1 / T;
-    printf("Start Metropolis T = %.2lf; N_cm = %d; N_therm = %d\n", T, N_mc, N_therm);
-
     for (unsigned i = 0; i < exp_delta_E_list.size(); i++)
     {
         exp_delta_E_list[i] = exp(-beta * (-2 * J * grid->nn_batch_size + 4 * J * i));
@@ -166,7 +164,47 @@ void Ising::metropolis(mt19937 &gen, vector<double> &energies, vector<double> &m
             magnetizations.push_back(magnetization());
         }
     }
-    printf("Metropolis accept-rate = %.3lf%%\n", accept_rate / ((N_therm + N_mc) * grid->volume) * 100);
+}
+
+void Ising::wolff_cluster(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, vector<double> &cluster_densities, double T, int N_mc)
+{
+    energies.clear();
+    magnetizations.clear();
+    cluster_densities.clear();
+
+    uniform_int_distribution<int> unidist_int(0, grid->volume - 1);
+    uniform_real_distribution<double> unidist_real(0, 1);
+    double P_add = 1 - exp(-2 / T * J);
+    double average_cluster_size = 0;
+
+    for (size_t i = 0; i < N_mc; i++)
+    {
+        vector<unsigned> cluster;
+        unsigned site = unidist_int(gen);
+        cluster.push_back(site);
+        data[site] *= -1;
+
+        for (int k = 0; k < cluster.size(); k++)
+        {
+            site = cluster[k];
+            for (int j = 0; j < grid->nn_batch_size; j++)
+            {
+                unsigned nb = grid->nearest_neighbors[site * grid->nn_batch_size + j];
+                if (data[nb] == -data[site])
+                {
+                    double rand_real = unidist_real(gen);
+                    if (rand_real <= P_add)
+                    {
+                        cluster.push_back(nb);
+                        data[nb] *= -1;
+                    }
+                }
+            }
+        }
+        energies.push_back(energy());
+        magnetizations.push_back(magnetization());
+        cluster_densities.push_back((double)cluster.size() / grid->volume);
+    }
 }
 
 int Ising::get_volume()

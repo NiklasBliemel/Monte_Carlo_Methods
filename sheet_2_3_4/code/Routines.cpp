@@ -1,6 +1,7 @@
 #include "Routines.h"
 #include <vector>
 #include <functional>
+#include <random>
 
 using namespace std;
 
@@ -114,4 +115,46 @@ double auto_corr_std(vector<double> &vec, int N_therm)
     double tau = auto_correlation_time(vec, N_therm);
     int N_therm_new = (int)(20 * tau);
     return sqrt(2 * tau / (vec.size() - N_therm_new)) * vec_std(vec, N_therm_new);
+}
+
+double error_propagation(vector<double> &sample, int N_therm, double &tau_g)
+{
+    vector<double> gs(sample.size());
+    vector<double> gs_alt(sample.size());
+    double mean = vec_mean(sample, N_therm);
+    for (size_t i = 0; i < sample.size(); i++)
+    {
+        gs[i] = sample[i] * (sample[i] - 2 * mean);
+    }
+    tau_g = auto_correlation_time(gs, N_therm);
+    int N_therm_g = (int)(20 * tau_g);
+    return sqrt(2 * tau_g / (gs.size() - N_therm_g)) * vec_std(gs, N_therm_g);
+}
+
+double blocking(vector<double> &sample, int n_b, int N_therm)
+{
+    vector<double> blocks(n_b);
+    int block_size = (sample.size() - N_therm) / n_b;
+    for (int i = 0; i < n_b; i++)
+    {
+        blocks[i] = vec_var(sample, i * block_size + N_therm, block_size);
+    }
+    return blocking_std(blocks);
+}
+
+double bootstrap(vector<double> &sample, int M, int N_therm, double tau_g, mt19937 gen)
+{
+    uniform_int_distribution<int> unidist(N_therm, sample.size() - 1);
+    vector<double> boots(M);
+    vector<double> pseudo_sample((sample.size() - N_therm) / (int)(2 * tau_g));
+    for (size_t i = 0; i < M; i++)
+    {
+        for (size_t j = 0; j < (sample.size() - N_therm) / (int)(2 * tau_g); j++)
+        {
+            int rand_index = unidist(gen);
+            pseudo_sample[j] = sample[rand_index];
+        }
+        boots[i] = vec_var(pseudo_sample, 0);
+    }
+    return vec_std(boots, 0);
 }

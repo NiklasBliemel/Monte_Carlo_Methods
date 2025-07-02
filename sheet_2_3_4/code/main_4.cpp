@@ -46,14 +46,15 @@ int main(int argc, char const *argv[])
 
     vector<double> energies;
     vector<double> magnetizations;
-    double T_0 = 1;
-    double del_T = 0.1;
+    vector<double> cluster_sizes;
+    double T_0 = 2.1;
+    double del_T = 0.01;
     int N_steps = 30;
 
-    printf("-------- Starting run with Metropolis from T_0 = %lf to T_N = %lf with Delta T = %lf --------\n", T_0, T_0 + del_T * N_steps, del_T);
+    printf("-------- Starting run with Wolff from T_0 = %lf to T_N = %lf with Delta T = %lf --------\n", T_0, T_0 + del_T * N_steps, del_T);
     printf("T\t\te\t\tsigma_e\t\tc\t\tsigma_c\t\tm\t\tsigma_m\t\txi\t\tsigma_xi\n");
 
-    string filename = "../../plot_lab/sheet_3_data/metropolis.o";
+    string filename = "../../plot_lab/sheet_3_data/wolff.o";
     ofstream wf;
     wf.open(filename);
     for (size_t i = 0; i < N_steps + 1; i++)
@@ -67,11 +68,11 @@ int main(int argc, char const *argv[])
         wf << T << "\t";
 
         // generate sample
-        ising.metropolis(gen, energies, magnetizations, T, N_mc, 0);
+        ising.wolff_cluster(gen, energies, magnetizations, cluster_sizes, T, N_mc);
 
         // autocorrelation for energies
         double int_auto_correlation_time = auto_correlation_time(energies, N_therm_default);
-        int N_therm = 20 * (int)int_auto_correlation_time;
+        int N_therm = (int)(20 * int_auto_correlation_time);
 
         // calculate observables on energies
         double e = vec_mean(energies, N_therm);

@@ -48,7 +48,7 @@ double XY::magnetization()
         out_x += cos(data[i]);
         out_y += sin(data[i]);
     }
-    return (sqr(out_x) + sqr(out_y)) / grid->volume;
+    return sqrt(sqr(out_x) + sqr(out_y)) / grid->volume;
 }
 
 void XY::org(double state)
@@ -83,6 +83,7 @@ double XY::dV_dqj(int j, double T)
         int nn = grid->nearest_neighbors[j * grid->nn_batch_size + k];
         out += -J * sin(data[j] - data[nn]) / T;
     }
+    return out;
 }
 
 double XY::H_hmc(vector<double> &momenta, double T)
@@ -92,7 +93,7 @@ double XY::H_hmc(vector<double> &momenta, double T)
     {
         out += sqr(momenta[i]);
     }
-    return out / 2 + energy() / T;
+    return out / 2 + energy() * grid->volume / T;
 }
 
 void XY::hmc(mt19937 &gen, vector<double> &energies, vector<double> &magnetizations, double T, int N_mc, double del_t, int n)
@@ -105,7 +106,7 @@ void XY::hmc(mt19937 &gen, vector<double> &energies, vector<double> &magnetizati
     normal_distribution<double> normaldist(0.0, 1.0);
     vector<double> momenta(grid->volume);
 
-    for (size_t k = 0; k < N_mc; k++)
+    for (int k = 0; k < N_mc; k++)
     {
         for (size_t j = 0; j < momenta.size(); j++) // t = 0
         {

@@ -52,7 +52,7 @@ int main(int argc, char const *argv[])
     int N_steps = 30;
     printf("-------- Starting run with Metropolis and Wolff from T_0 = %lf to T_N = %lf with Delta T = %lf --------\n", T_0, T_0 + del_T * N_steps, del_T);
     printf("T\t\t<n>/V\t\tsigma_n\t\ttau_e_wolff\ttau_m_wolff\ttau_e_metro\ttau_m_metro\n");
-    string filename = "../../plot_lab/sheet_3_data/ex_3_4.o";
+    string filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/sheet_4_data/ex_4.o";
     ofstream wf;
     wf.open(filename);
     for (size_t i = 0; i < N_steps + 1; i++)

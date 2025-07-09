@@ -82,8 +82,8 @@ int main()
     string filename;
     string Ns_filename;
     vector<double> sample;
-    filename = "data.bin";
-    Ns_filename = "data_Ns.bin";
+    filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/sheet_1_data/data.bin";
+    Ns_filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/sheet_1_data/data_Ns.bin";
     ofstream wf(filename, ios::binary);
     ofstream wfNs(Ns_filename, ios::binary);
     if (!wf && !wfNs)

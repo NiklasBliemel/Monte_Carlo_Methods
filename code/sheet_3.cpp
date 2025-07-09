@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
         printf("N_therm = %d\n\n", N_therm);
         printf("c = %lf\n\n", c);
 
-        string filename = "../../plot_lab/auto_correlations/auto_corr_e_t" + stream.str();
+        string filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/sheet_3_data/auto_corr_e_t" + stream.str();
         wf.open(filename, ios::binary);
         wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
         wf.write(reinterpret_cast<char *>(&sigma_e), sizeof(double));
@@ -132,7 +132,7 @@ int main(int argc, char const *argv[])
         printf("N_therm = %d\n\n", N_therm);
         printf("xi = %lf\n\n", xi);
 
-        filename = "../../plot_lab/auto_correlations/auto_corr_m_t" + stream.str();
+        filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/sheet_3_data/auto_corr_m_t" + stream.str();
         wf.open(filename, ios::binary);
         wf.write(reinterpret_cast<char *>(&int_auto_correlation_time), sizeof(double));
         wf.write(reinterpret_cast<char *>(&sigma_m), sizeof(double));

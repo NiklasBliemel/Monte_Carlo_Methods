@@ -78,7 +78,7 @@ int main(int argc, char const *argv[])
                 printf("specific heat c = %.8lf\n", c);
                 printf("susceptibility chi = %.8lf\n", chi);
 
-                filename = "../../plot_lab/energies/energies_t" + stream.str() + "_" + to_string(i);
+                filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/energies/energies_t" + stream.str() + "_" + to_string(i);
                 wf.open(filename, ios::binary);
                 for (double energy : energies)
                 {
@@ -86,7 +86,7 @@ int main(int argc, char const *argv[])
                 }
                 wf.write(reinterpret_cast<char *>(&c), sizeof(double));
                 wf.close();
-                filename = "../../plot_lab/magnetizations/magnetizations_t" + stream.str() + "_" + to_string(i);
+                filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/magnetizations/magnetizations_t" + stream.str() + "_" + to_string(i);
                 wf.open(filename, ios::binary);
                 for (double magnetization : magnetizations)
                 {

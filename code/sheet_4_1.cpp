@@ -53,7 +53,7 @@ int main(int argc, char const *argv[])
     printf("-------- Starting run with Metropolis from T_0 = %lf to T_N = %lf with Delta T = %lf --------\n", T_0, T_0 + del_T * N_steps, del_T);
     printf("T\t\te\t\tsigma_e\t\tc\t\tsigma_c\t\tm\t\tsigma_m\t\txi\t\tsigma_xi\n");
 
-    string filename = "../../plot_lab/sheet_3_data/metropolis.o";
+    string filename = "/Users/niklasbliemel/Study/Monte_Carlo_Methods/plot_lab/sheet_4_data/metropolis.o";
     ofstream wf;
     wf.open(filename);
     for (size_t i = 0; i < N_steps + 1; i++)

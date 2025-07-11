@@ -61,7 +61,7 @@ int main(int argc, char const *argv[])
         wf << fixed << setprecision(10)
            << T << "\t";
 
-        xy.hmc(gen, energies, magnetizations, 0.1, N_mc, del_t, n);
+        xy.hmc(gen, energies, magnetizations, T, N_mc, del_t, n);
 
         // autocorrelation for energies
         double int_auto_correlation_time = auto_correlation_time(energies, N_therm_default);

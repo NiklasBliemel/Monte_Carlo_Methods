@@ -102,7 +102,7 @@ void XY::hmc(mt19937 &gen, vector<double> &energies, vector<double> &magnetizati
     energies.clear();
     magnetizations.clear();
 
-    vector<double> old_data = data;
+    vector<double> old_data(data);
     normal_distribution<double> normaldist(0.0, 1.0);
     vector<double> momenta(grid->volume);
 
@@ -150,7 +150,10 @@ void XY::hmc(mt19937 &gen, vector<double> &energies, vector<double> &magnetizati
             double r = unidist(gen);
             if (r > exp(-del_H))
             {
-                data = old_data;
+                for (size_t j = 0; j < data.size(); j++)
+                {
+                    data[j] = old_data[j];
+                }
             }
         }
         energies.push_back(energy());
